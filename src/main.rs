@@ -1,14 +1,18 @@
 mod storage;
+mod runtime;
 
-use storage::Storage;
+use runtime::EventLoop;
+// use storage::Storage;
 
 fn main(){
-    let mut storage = Storage::new();
+    let mut eventLoop = EventLoop::new();
+    
+    eventLoop.add_tasks("716253716253761253", 123);
+    eventLoop.add_tasks("444", 39999);
+    eventLoop.add_tasks("716253716253761253", 212123);
+    eventLoop.add_tasks("716253716253761253", 1);
+    eventLoop.add_tasks("716253716253761253", 2);
 
-    storage.set("User", "Vishnu");
-
-    let result = storage.get(&"User").unwrap();
-
-    println!("{}", result);
+    eventLoop.run();
 
 }
