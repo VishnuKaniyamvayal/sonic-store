@@ -1,4 +1,6 @@
 mod resp;
+#[cfg(test)]
+mod resp_test;
 
 use std::{io::{Read, Write}, net::TcpListener};
 
