@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum RespType {
     SimpleString {
         data: String,
@@ -107,6 +107,22 @@ fn add_to_delta(resp: &mut RespType, extra: usize) {
         RespType::BulkString { delta, .. } => *delta += extra,
         RespType::Array { delta, .. } => *delta += extra,
     }
+}
+
+pub fn decode_arguments(data: &[u8]) -> Result<Vec<RespType>, RespType> {
+    let mut pos: usize = 0;
+    let mut tokens: Vec<RespType> = Vec::new();
+    while pos < data.len() {
+        let token = decode(&data[pos..])?;
+        pos += get_delta(&token);
+        match token {
+            RespType::SimpleString { data, .. } => tokens.push(RespType::SimpleString { data, delta: 0 }),
+            RespType::BulkString { data, .. } => tokens.push(RespType::BulkString { data, delta: 0 }),
+            RespType::Integer { data, .. } => tokens.push(RespType::Integer { data, delta: 0 }),
+            _ => return Err(RespType::Error { message: "Unsupported type in arguments".to_string(), delta: 0 }),
+        }
+    }
+    Ok(tokens)
 }
 
 pub fn decode(data: &[u8]) -> Result<RespType, RespType> {

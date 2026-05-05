@@ -1,8 +1,12 @@
 mod resp;
+mod sync;
 #[cfg(test)]
 mod resp_test;
 
 use std::{io::{Read, Write}, net::TcpListener};
+
+use crate::{sync::{read_command, respond_to_command}};
+
 
 fn main(){
     let listener = TcpListener::bind("127.0.0.1:3000").unwrap();
@@ -29,7 +33,8 @@ fn main(){
                 Ok(n) => {
                     println!("Packets Received: {}", n);
                     println!("Sending it back");
-                    stream.write_all(&buffer[..n]).unwrap();
+                    let command = read_command(&buffer[..n]).unwrap();
+                    respond_to_command(&mut stream, command);
                     
                 },
                 Err(err) => println!("Error {:?}", err.to_string())
