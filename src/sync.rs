@@ -44,7 +44,7 @@ pub fn respond_to_command(stream: &mut TcpStream ,command: SonicCommand) {
                 let response = encode_resp(&RespType::SimpleString { data: "PONG".to_string(), delta: 0 });
                 stream.write_all(&response).unwrap();
             }
-            if command.args.len() >= 2 {
+            else if command.args.len() >= 2 {
                 respond_error(stream, "ERR wrong number of arguments for 'PING' command");
             }
             else {
@@ -62,11 +62,13 @@ pub fn respond_error(stream: &mut TcpStream, message: &str) {
 }
 
 pub fn read_command(raw_data: &[u8]) -> Result<SonicCommand, String> {
+    println!("Raw data: {:?}", decode_arguments(raw_data));
     match decode_arguments(raw_data) {
         Ok(tokens) => {
             if tokens.len() == 0 {
                 return Err("No command found".to_string());
             }
+                println!("{:?}", tokens);
                 let name = match &tokens[0] {
                     RespType::SimpleString { data, .. } => data.clone(),
                     RespType::BulkString { data, .. } => {
@@ -75,6 +77,10 @@ pub fn read_command(raw_data: &[u8]) -> Result<SonicCommand, String> {
                             result.push(*byte as char);
                         }
                         result
+                    },
+                    RespType::Integer { data, .. } => data.to_string(),
+                    RespType::Array { data, .. } => {
+                        return Err("Command name cannot be an array".to_string());
                     },
                      _ => return Err("Invalid command name type".to_string()),
                 };
@@ -97,5 +103,6 @@ pub fn read_command(raw_data: &[u8]) -> Result<SonicCommand, String> {
                 return  Ok( SonicCommand{ name, args });
         },
         Err(err) => Err(format!("Failed to decode command: {:?}", err))
+        //  Err(format!("Failed to decode command: {:?}", "Not implemented"))
     }
 }
