@@ -62,7 +62,6 @@ pub fn respond_error(stream: &mut TcpStream, message: &str) {
 }
 
 pub fn read_command(raw_data: &[u8]) -> Result<SonicCommand, String> {
-    println!("Raw data: {:?}", decode_arguments(raw_data));
     match decode_arguments(raw_data) {
         Ok(tokens) => {
             if tokens.len() == 0 {
@@ -77,10 +76,6 @@ pub fn read_command(raw_data: &[u8]) -> Result<SonicCommand, String> {
                             result.push(*byte as char);
                         }
                         result
-                    },
-                    RespType::Integer { data, .. } => data.to_string(),
-                    RespType::Array { data, .. } => {
-                        return Err("Command name cannot be an array".to_string());
                     },
                      _ => return Err("Invalid command name type".to_string()),
                 };
@@ -103,6 +98,5 @@ pub fn read_command(raw_data: &[u8]) -> Result<SonicCommand, String> {
                 return  Ok( SonicCommand{ name, args });
         },
         Err(err) => Err(format!("Failed to decode command: {:?}", err))
-        //  Err(format!("Failed to decode command: {:?}", "Not implemented"))
     }
 }

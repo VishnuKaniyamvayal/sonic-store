@@ -119,6 +119,11 @@ pub fn decode_arguments(data: &[u8]) -> Result<Vec<RespType>, RespType> {
             RespType::SimpleString { data, .. } => tokens.push(RespType::SimpleString { data, delta: 0 }),
             RespType::BulkString { data, .. } => tokens.push(RespType::BulkString { data, delta: 0 }),
             RespType::Integer { data, .. } => tokens.push(RespType::Integer { data, delta: 0 }),
+            RespType::Array { data, .. } => {
+                for item in data {
+                    tokens.push(item);
+                }
+            },
             _ => return Err(RespType::Error { message: "Unsupported type in arguments".to_string(), delta: 0 }),
         }
     }
@@ -129,7 +134,6 @@ pub fn decode(data: &[u8]) -> Result<RespType, RespType> {
     if data.len() == 0 {
         return Err(RespType::Error { message: "Empty data".to_string(), delta: 0 });
     }
-    
     match data[0] {
         b'+' => {
             let mut result = read_simple_string(&data[1..])?;
