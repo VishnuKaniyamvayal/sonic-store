@@ -38,7 +38,7 @@ fn main() -> std::io::Result<()> {
                     println!("New connection from {}", addr);
 
                     let token = Token(clients.len() + 1);
-                    poll.registry().register(&mut client, token, Interest::READABLE)?;
+                    poll.registry().register(&mut client, token, Interest::READABLE | Interest::WRITABLE)?;
                     clients.push(Some(client));
                 }
                 token => {
