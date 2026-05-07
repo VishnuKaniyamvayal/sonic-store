@@ -1,45 +1,70 @@
-mod resp;
-mod sync;
-#[cfg(test)]
-mod resp_test;
+// Cargo.toml
+// [dependencies]
+// mio = { version = "0.8", features = ["net", "os-poll"] }
 
-use std::{io::{Read, Write}, net::TcpListener};
+use mio::{Events, Interest, Poll, Token};
+use mio::net::TcpListener;
+use std::io::Read;
 
-use crate::{sync::{read_command, respond_to_command}};
+const SERVER: Token = Token(0);
 
+fn main() -> std::io::Result<()> {
+    // 1. Create the poll instance (wraps kqueue fd)
+    let mut poll = Poll::new()?;
 
-fn main(){
-    let listener = TcpListener::bind("127.0.0.1:3000").unwrap();
-    let mut connections: u32 = 0;
+    // 2. Event buffer (same as `struct kevent events[128]`)
+    let mut events = Events::with_capacity(128);
 
+    // 3. Create and register TCP listener
+    let addr = "127.0.0.1:8080".parse().unwrap();
+    let mut server = TcpListener::bind(addr)?;
+
+    // Register server fd with kqueue for READ readiness
+    poll.registry().register(&mut server, SERVER, Interest::READABLE)?;
+
+    // Track client connections
+    let mut clients: Vec<Option<mio::net::TcpStream>> = Vec::new();
+
+    // 4. Event loop
     loop {
-        let ( mut stream, socket_address ) = listener.accept().unwrap();
-        
-        connections += 1;
+        // This calls kevent() under the hood — blocks until something is ready
+        poll.poll(&mut events, None)?;
 
-        println!("New Connection from address{:?},  total connections: {}", socket_address.ip(), connections);
+        for event in events.iter() {
+            match event.token() {
+                SERVER => {
+                    // Server fd is readable → accept new connection
+                    let (mut client, addr) = server.accept()?;
+                    println!("New connection from {}", addr);
 
-
-
-        loop {
-            let mut buffer = [0; 1024];
-
-            match stream.read(&mut buffer){
-                Ok(0) => {
-                    println!("Connection Closed with ip {:?}", socket_address.ip());
-                    connections -= 1;
-                    break;
-                },
-                Ok(n) => {
-                    println!("Packets Received: {}", n);
-                    println!("Sending it back");
-                    let command = read_command(&buffer[..n]).unwrap();
-                    respond_to_command(&mut stream, command);
-                    
-                },
-                Err(err) => println!("Error {:?}", err.to_string())
+                    let token = Token(clients.len() + 1);
+                    poll.registry().register(&mut client, token, Interest::READABLE)?;
+                    clients.push(Some(client));
+                }
+                token => {
+                    // A client fd is readable
+                    let idx = token.0 - 1;
+                    if let Some(ref mut client) = clients[idx] {
+                        let mut buf = [0u8; 1024];
+                        match client.read(&mut buf) {
+                            Ok(0) => {
+                                println!("Client disconnected");
+                                clients[idx] = None;
+                            }
+                            Ok(n) => {
+                                println!("Received {} bytes: {:?}", n, &buf[..n]);
+                            }
+                            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                                // Not actually ready yet, try again later
+                            }
+                            Err(e) => {
+                                println!("Error: {}", e);
+                                clients[idx] = None;
+                            }
+                        }
+                    }
+                }
             }
         }
-
     }
 }
