@@ -1,4 +1,5 @@
-use std::{io::Write, net::TcpStream};
+use std::{io::Write};
+use mio::net::TcpStream;
 
 use crate::resp::{RespType, decode_arguments};
 

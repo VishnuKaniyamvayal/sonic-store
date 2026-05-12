@@ -1,10 +1,11 @@
-// Cargo.toml
-// [dependencies]
-// mio = { version = "0.8", features = ["net", "os-poll"] }
+mod resp;
+mod sync;
 
 use mio::{Events, Interest, Poll, Token};
 use mio::net::TcpListener;
 use std::io::Read;
+
+use crate::sync::respond_to_command;
 
 const SERVER: Token = Token(0);
 
@@ -52,7 +53,8 @@ fn main() -> std::io::Result<()> {
                                 clients[idx] = None;
                             }
                             Ok(n) => {
-                                println!("Received {} bytes: {:?}", n, &buf[..n]);
+                                let command = sync::read_command(&buf[..n]).unwrap();
+                                respond_to_command(client, command);
                             }
                             Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                                 // Not actually ready yet, try again later
