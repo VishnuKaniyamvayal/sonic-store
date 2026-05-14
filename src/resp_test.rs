@@ -84,7 +84,7 @@ fn test_array_simple() {
     let input = b"*2\r\n+hello\r\n+world\r\n";
     let result = decode(input).unwrap();
     match result {
-        RespType::Array { data, delta } => {
+        RespType::Array { data, .. } => {
             assert_eq!(data.len(), 2);
             match &data[0] {
                 RespType::SimpleString { data, .. } => assert_eq!(data, "hello"),
@@ -105,7 +105,7 @@ fn test_array_mixed() {
     let input = b"*3\r\n:1\r\n:2\r\n$3\r\nfoo\r\n";
     let result = decode(input).unwrap();
     match result {
-        RespType::Array { data, delta } => {
+        RespType::Array { data, .. } => {
             assert_eq!(data.len(), 3);
             match &data[0] {
                 RespType::Integer { data, .. } => assert_eq!(*data, 1),

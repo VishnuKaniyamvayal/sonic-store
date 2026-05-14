@@ -36,9 +36,6 @@ pub fn encode_resp(value: &RespType) -> Vec<u8> {
 }
 
 pub fn respond_to_command(stream: &mut TcpStream ,command: SonicCommand) {
-
-    // evaluate the command and write the response to the stream
-    
     match command.name.as_str() {
         "PING" => {
             if command.args.len() == 0 {

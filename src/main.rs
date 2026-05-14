@@ -1,6 +1,10 @@
 mod resp;
 mod sync;
 
+// configure test
+#[cfg(test)]
+mod resp_test;
+
 use mio::{Events, Interest, Poll, Token};
 use mio::net::TcpListener;
 use std::io::Read;
@@ -19,7 +23,7 @@ fn main() -> std::io::Result<()> {
     // 3. Create and register TCP listener
     let addr = "127.0.0.1:8080".parse().unwrap();
     let mut server = TcpListener::bind(addr)?;
-
+    
     // Register server fd with kqueue for READ readiness
     poll.registry().register(&mut server, SERVER, Interest::READABLE)?;
 
