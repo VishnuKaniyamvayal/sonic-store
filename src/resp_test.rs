@@ -53,6 +53,19 @@ fn test_integer_zero() {
 }
 
 #[test]
+fn test_integer_negative() {
+    let input = b":-123\r\n";
+    let result = decode(input).unwrap();
+    match result {
+        RespType::Integer { data, delta } => {
+            assert_eq!(data, -123);
+            assert_eq!(delta, 7); // ":-123\r\n"
+        }
+        _ => panic!("Expected Integer"),
+    }
+}
+
+#[test]
 fn test_bulk_string() {
     let input = b"$5\r\nhello\r\n";
     let result = decode(input).unwrap();
@@ -118,6 +131,40 @@ fn test_array_mixed() {
             match &data[2] {
                 RespType::BulkString { data, .. } => assert_eq!(data, b"foo"),
                 _ => panic!("Expected BulkString in array[2]"),
+            }
+        }
+        _ => panic!("Expected Array"),
+    }
+}
+
+#[test]
+fn test_array_nested_with_delta() {
+    // *2\r\n*2\r\n+ok\r\n:7\r\n$3\r\nbar\r\n
+    let input = b"*2\r\n*2\r\n+ok\r\n:7\r\n$3\r\nbar\r\n";
+    let result = decode(input).unwrap();
+    match result {
+        RespType::Array { data, delta } => {
+            assert_eq!(data.len(), 2);
+            assert_eq!(delta, input.len());
+
+            match &data[0] {
+                RespType::Array { data, .. } => {
+                    assert_eq!(data.len(), 2);
+                    match &data[0] {
+                        RespType::SimpleString { data, .. } => assert_eq!(data, "ok"),
+                        _ => panic!("Expected SimpleString in nested array[0]"),
+                    }
+                    match &data[1] {
+                        RespType::Integer { data, .. } => assert_eq!(*data, 7),
+                        _ => panic!("Expected Integer in nested array[1]"),
+                    }
+                }
+                _ => panic!("Expected nested Array in array[0]"),
+            }
+
+            match &data[1] {
+                RespType::BulkString { data, .. } => assert_eq!(data, b"bar"),
+                _ => panic!("Expected BulkString in array[1]"),
             }
         }
         _ => panic!("Expected Array"),
