@@ -1,7 +1,7 @@
 use std::{io::Write};
 use mio::net::TcpStream;
 
-use crate::resp::{RespType, decode_arguments};
+use crate::{db::Db, resp::{RespType, decode_arguments}};
 
 pub struct SonicCommand {
     pub name: String,
@@ -35,7 +35,7 @@ pub fn encode_resp(value: &RespType) -> Vec<u8> {
     }
 }
 
-pub fn respond_to_command(stream: &mut TcpStream ,command: SonicCommand) {
+pub fn respond_to_command(stream: &mut TcpStream ,command: SonicCommand, map: &mut Db::<String, String>) {
     match command.name.as_str() {
         "PING" => {
             if command.args.len() == 0 {
@@ -51,8 +51,47 @@ pub fn respond_to_command(stream: &mut TcpStream ,command: SonicCommand) {
             }
         },
         "SET" => {
-            println!("RECEIVED SET")
+            if command.args.len() < 2 {
+                respond_error(stream, "ERR wrong number of arguments for 'SET' command");
+            } else {
+                let key = command.args[0].clone();
+                let value = command.args[1].clone();
 
+                match map.set(key, value) {
+                    Some(previous) => {
+                        let response = encode_resp(&RespType::BulkString {
+                            data: previous.into_bytes(),
+                            delta: 0,
+                        });
+                        stream.write_all(&response).unwrap();
+                    }
+                    None => {
+                        let response = encode_resp(&RespType::SimpleString {
+                            data: "OK".to_string(),
+                            delta: 0,
+                        });
+                        stream.write_all(&response).unwrap();
+                    }
+                }
+            }
+        },
+        "GET" => {
+            if command.args.len() != 1 {
+                respond_error(stream, "ERR wrong number of arguments for 'GET' command");
+            } else {
+                let key = command.args[0].clone();
+
+                match map.get(&key) {
+                    Some(value) => {
+                        let response = encode_resp(&RespType::BulkString {
+                            data: value.as_bytes().to_vec(),
+                            delta: 0,
+                        });
+                        stream.write_all(&response).unwrap();
+                    }
+                    None => respond_error(stream, "ERR key not found"),
+                }
+            }
         },
         _ => respond_error(stream, "ERR unknown command"),
     }

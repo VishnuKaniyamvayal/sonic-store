@@ -1,6 +1,6 @@
 mod resp;
 mod sync;
-
+mod db;
 // configure test
 #[cfg(test)]
 mod resp_test;
@@ -9,6 +9,7 @@ use mio::{Events, Interest, Poll, Token};
 use mio::net::TcpListener;
 use std::io::Read;
 
+use crate::db::Db;
 use crate::sync::respond_to_command;
 
 const SERVER: Token = Token(0);
@@ -16,6 +17,8 @@ const SERVER: Token = Token(0);
 fn main() -> std::io::Result<()> {
     // 1. Create the poll instance (wraps kqueue fd)
     let mut poll = Poll::new()?;
+
+    let mut database = Db::<String, String>::new();
 
     // 2. Event buffer (same as `struct kevent events[128]`)
     let mut events = Events::with_capacity(128);
@@ -58,7 +61,7 @@ fn main() -> std::io::Result<()> {
                             }
                             Ok(n) => {
                                 let command = sync::read_command(&buf[..n]).unwrap();
-                                respond_to_command(client, command);
+                                respond_to_command(client, command, &mut database);
                             }
                             Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                                 // Not actually ready yet, try again later
