@@ -50,6 +50,10 @@ pub fn respond_to_command(stream: &mut TcpStream ,command: SonicCommand) {
                 stream.write_all(&response).unwrap();
             }
         },
+        "SET" => {
+            println!("RECEIVED SET")
+
+        },
         _ => respond_error(stream, "ERR unknown command"),
     }
 }
