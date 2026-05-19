@@ -108,7 +108,6 @@ pub fn read_command(raw_data: &[u8]) -> Result<SonicCommand, String> {
             if tokens.len() == 0 {
                 return Err("No command found".to_string());
             }
-                println!("{:?}", tokens);
                 let name = match &tokens[0] {
                     RespType::SimpleString { data, .. } => data.clone(),
                     RespType::BulkString { data, .. } => {

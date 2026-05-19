@@ -1,6 +1,7 @@
 mod resp;
 mod sync;
 mod db;
+mod expire;
 // configure test
 #[cfg(test)]
 mod resp_test;
