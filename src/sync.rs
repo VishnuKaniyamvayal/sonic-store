@@ -56,6 +56,17 @@ pub fn respond_to_command(stream: &mut TcpStream ,command: SonicCommand, map: &m
             } else {
                 let key = command.args[0].clone();
                 let value = command.args[1].clone();
+                let mut exp = -1; // -1 means never expire
+                
+                if command.args.len() >= 3 {
+                    match command.args[2].parse::<i32>() {
+                        Ok(v) => exp = v,
+                        Err(..) => {
+                            respond_error(stream, "Enter a valid Expiration date");
+                            return
+                        }
+                    }
+                }
 
                 match map.set(key, value) {
                     Some(previous) => {
@@ -93,6 +104,24 @@ pub fn respond_to_command(stream: &mut TcpStream ,command: SonicCommand, map: &m
                 }
             }
         },
+        "DEL" => {
+            if command.args.len() != 1 {
+                respond_error(stream, "ERR wrong number of arguments for 'DEL' command");
+            }
+            else{
+                // delete from the hashmap
+                match map.delete(&command.args[0]) {
+                    false => {
+                        respond_error(stream, "Key not found");
+                    }
+                    true => {
+                        let res_string = String::from("1");
+                        let response = encode_resp(&RespType::BulkString { data:res_string.as_bytes().to_vec() , delta: 0 });
+                        stream.write_all(&response).unwrap();
+                    }
+                }
+            }
+        }
         _ => respond_error(stream, "ERR unknown command"),
     }
 }

@@ -6,7 +6,12 @@ pub struct Db<K, V> {
 	store: HashMap<K, V>,
 }
 
-impl<K, V> Db<K, V>
+pub struct Item<V> {
+	pub value: V,
+	pub exp: i32
+}
+
+impl<K, Item> Db<K, Item>
 where
 	K: Eq + Hash,
 {
@@ -16,16 +21,20 @@ where
 		}
 	}
 
-	pub fn set(&mut self, key: K, value: V) -> Option<V> {
+	pub fn set(&mut self, key: K, value: Item) -> Option<Item> {
 		self.store.insert(key, value)
 	}
 
-	pub fn get(&self, key: &K) -> Option<&V> {
+	pub fn get(&self, key: &K) -> Option<&Item> {
 		self.store.get(key)
 	}
 
-	pub fn delete(&mut self, key: &K) -> Option<V> {
-		self.store.remove(key)
+	pub fn delete(&mut self, key: &K) -> bool {
+		if self.store.contains_key(key){
+			self.store.remove(key);
+			return true;
+		}
+		false
 	}
 }
 
@@ -39,7 +48,7 @@ mod tests {
 
 		assert_eq!(db.set("name", "sonic"), None);
 		assert_eq!(db.get(&"name"), Some(&"sonic"));
-		assert_eq!(db.delete(&"name"), Some("sonic"));
+		assert_eq!(db.delete(&"name"), true);
 		assert_eq!(db.get(&"name"), None);
 	}
 }
