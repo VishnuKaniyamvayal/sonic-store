@@ -6,12 +6,14 @@ mod expire;
 #[cfg(test)]
 mod resp_test;
 
+use clap::error::ContextKind::ExpectedNumValues;
 use mio::{Events, Interest, Poll, Token};
 use mio::net::TcpListener;
 use std::io::Read;
 
 use crate::db::Db;
 use crate::sync::respond_to_command;
+use crate::expire::Expire_Store;
 
 const SERVER: Token = Token(0);
 
@@ -20,6 +22,7 @@ fn main() -> std::io::Result<()> {
     let mut poll = Poll::new()?;
 
     let mut database = Db::<String, String>::new();
+    let mut expire_db = Expire_Store::<String, u64>::new();
 
     // 2. Event buffer (same as `struct kevent events[128]`)
     let mut events = Events::with_capacity(128);
@@ -62,7 +65,7 @@ fn main() -> std::io::Result<()> {
                             }
                             Ok(n) => {
                                 let command = sync::read_command(&buf[..n]).unwrap();
-                                respond_to_command(client, command, &mut database);
+                                respond_to_command(client, command, &mut database, &mut expire_db);
                             }
                             Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                                 // Not actually ready yet, try again later

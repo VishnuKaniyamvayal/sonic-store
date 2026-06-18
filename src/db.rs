@@ -6,12 +6,7 @@ pub struct Db<K, V> {
 	store: HashMap<K, V>,
 }
 
-pub struct Item<V> {
-	pub value: V,
-	pub exp: i32
-}
-
-impl<K, Item> Db<K, Item>
+impl<K, V> Db<K, V>
 where
 	K: Eq + Hash,
 {
@@ -21,11 +16,11 @@ where
 		}
 	}
 
-	pub fn set(&mut self, key: K, value: Item) -> Option<Item> {
+	pub fn set(&mut self, key: K, value: V) -> Option<V> {
 		self.store.insert(key, value)
 	}
 
-	pub fn get(&self, key: &K) -> Option<&Item> {
+	pub fn get(&self, key: &K) -> Option<&V> {
 		self.store.get(key)
 	}
 

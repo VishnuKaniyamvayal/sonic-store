@@ -1,7 +1,7 @@
 use std::{io::Write};
 use mio::net::TcpStream;
 
-use crate::{db::Db, resp::{RespType, decode_arguments}};
+use crate::{db::Db, expire, resp::{RespType, decode_arguments}};
 
 pub struct SonicCommand {
     pub name: String,
@@ -35,7 +35,7 @@ pub fn encode_resp(value: &RespType) -> Vec<u8> {
     }
 }
 
-pub fn respond_to_command(stream: &mut TcpStream ,command: SonicCommand, map: &mut Db::<String, String>) {
+pub fn respond_to_command(stream: &mut TcpStream ,command: SonicCommand, map: &mut Db::<String, String>, expire_db: &mut expire::Expire_Store<String, u64>) {
     match command.name.as_str() {
         "PING" => {
             if command.args.len() == 0 {
@@ -56,11 +56,12 @@ pub fn respond_to_command(stream: &mut TcpStream ,command: SonicCommand, map: &m
             } else {
                 let key = command.args[0].clone();
                 let value = command.args[1].clone();
-                let mut exp = -1; // -1 means never expire
                 
                 if command.args.len() >= 3 {
-                    match command.args[2].parse::<i32>() {
-                        Ok(v) => exp = v,
+                    match command.args[2].parse::<u64>() {
+                        Ok(time) => {
+                            expire_db.set_expire(key.clone(), time);
+                        },
                         Err(..) => {
                             respond_error(stream, "Enter a valid Expiration date");
                             return

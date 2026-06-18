@@ -7,7 +7,7 @@ pub struct Expire_Store<K, V> {
 impl<K, V> Expire_Store<K, V> 
 where K: std::hash::Hash + Eq
 {
-    pub fn init() -> Self {
+    pub fn new() -> Self {
         Self {
             db: HashMap::new()
         }
