@@ -20,7 +20,7 @@ fn main() -> std::io::Result<()> {
     // 1. Create the poll instance (wraps kqueue fd)
     let mut poll = Poll::new()?;
 
-    let mut database = Db::<String, String>::new();
+    let mut database: Db<String, String> = Db::<String, String>::new();
     let mut expire_db = ExpireStore::<String>::new();
 
     // 2. Event buffer (same as `struct kevent events[128]`)
@@ -40,7 +40,7 @@ fn main() -> std::io::Result<()> {
         poll.poll(&mut events, None)?;
         
         // remove expired keys
-
+        expire_db.remove_using_clt(&mut database);
 
         for event in events.iter() {
             match event.token() {

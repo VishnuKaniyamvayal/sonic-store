@@ -9,6 +9,7 @@ tokio ={ version = "1", features = ["full"]}
 clap ={ version = "4.5.55"}
 libc = "0.2.186"
 mio = { version = "1.2.0", features = ["net"] }
+rand = "0.10.1"
 
 
 [dev-dependencies]

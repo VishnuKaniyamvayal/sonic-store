@@ -107,6 +107,7 @@ pub fn respond_to_command(stream: &mut TcpStream ,command: SonicCommand, map: &m
                                     let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
                                     if now > expires_at {
                                         map.delete(&key);
+                                        expire_db.remove_key(&key);
                                     }
                                 }
                                 _ =>{}
