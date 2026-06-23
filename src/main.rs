@@ -6,14 +6,13 @@ mod expire;
 #[cfg(test)]
 mod resp_test;
 
-use clap::error::ContextKind::ExpectedNumValues;
 use mio::{Events, Interest, Poll, Token};
 use mio::net::TcpListener;
 use std::io::Read;
 
 use crate::db::Db;
 use crate::sync::respond_to_command;
-use crate::expire::Expire_Store;
+use crate::expire::ExpireStore;
 
 const SERVER: Token = Token(0);
 
@@ -22,7 +21,7 @@ fn main() -> std::io::Result<()> {
     let mut poll = Poll::new()?;
 
     let mut database = Db::<String, String>::new();
-    let mut expire_db = Expire_Store::<String, u64>::new();
+    let mut expire_db = ExpireStore::<String>::new();
 
     // 2. Event buffer (same as `struct kevent events[128]`)
     let mut events = Events::with_capacity(128);
@@ -37,10 +36,11 @@ fn main() -> std::io::Result<()> {
     // Track client connections
     let mut clients: Vec<Option<mio::net::TcpStream>> = Vec::new();
 
-    // 4. Event loop
     loop {
-        // This calls kevent() under the hood — blocks until something is ready
         poll.poll(&mut events, None)?;
+        
+        // remove expired keys
+
 
         for event in events.iter() {
             match event.token() {

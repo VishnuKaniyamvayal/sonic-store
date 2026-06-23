@@ -1,4 +1,4 @@
-use std::{io::Write};
+use std::{io::Write, time::{SystemTime, UNIX_EPOCH}};
 use mio::net::TcpStream;
 
 use crate::{db::Db, expire, resp::{RespType, decode_arguments}};
@@ -35,7 +35,7 @@ pub fn encode_resp(value: &RespType) -> Vec<u8> {
     }
 }
 
-pub fn respond_to_command(stream: &mut TcpStream ,command: SonicCommand, map: &mut Db::<String, String>, expire_db: &mut expire::Expire_Store<String, u64>) {
+pub fn respond_to_command(stream: &mut TcpStream ,command: SonicCommand, map: &mut Db::<String, String>, expire_db: &mut expire::ExpireStore<String>) {
     match command.name.as_str() {
         "PING" => {
             if command.args.len() == 0 {
@@ -99,6 +99,19 @@ pub fn respond_to_command(stream: &mut TcpStream ,command: SonicCommand, map: &m
                             data: value.as_bytes().to_vec(),
                             delta: 0,
                         });
+                        // the key is expired then remove the key from the store
+                        if expire_db.contains_key(&key) {
+                            match expire_db.get_key_time(&key) {
+                                Some(&expires_at) => {
+                                    // check if the time is more than expected
+                                    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+                                    if now > expires_at {
+                                        map.delete(&key);
+                                    }
+                                }
+                                _ =>{}
+                            }
+                        }
                         stream.write_all(&response).unwrap();
                     }
                     None => respond_error(stream, "ERR key not found"),
